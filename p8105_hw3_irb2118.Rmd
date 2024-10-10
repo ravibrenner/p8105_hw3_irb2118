@@ -2,22 +2,30 @@
 title: "P8105 - HW3"
 date: "Due: 2024-10-14"
 output: github_document
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
-Author: Ravi Brenner (irb2118)
-# Introduction
+Author: Ravi Brenner (irb2118) 
+# Introduction 
 This Rmarkdown document is for P8105 - Data Science 1, homework 3, covering topics related to visualization and exploratory data analysis.
 
 # Methods
+
 The NY NOAA data for this assignment comes from the `p8105.datasets` package, which will be imported here along with the `tidyverse` package. Additionally, some custom setup options are included here, based on Dr. Goldsmith's examples in class. Further datasets were downloaded from the course website covering NHANES accelerometers and Citi Bike.
+
 ```{r setup, message=FALSE}
 library(tidyverse)
 library(p8105.datasets)
+library(patchwork)
 
 knitr::opts_chunk$set(
   fig.width = 6,
   fig.asp = .6,
-  out.width = "90%"
+  out.width = "90%",
+  message = FALSE,
+  warning = FALSE
 )
 
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
@@ -34,20 +42,25 @@ scale_fill_discrete = scale_fill_viridis_d
 # Problems
 
 ## Problem 1
-The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and indicating the extent to which missing data is an issue. Then, do or answer the following (commenting on the results of each):
-
-Do some data cleaning. Create separate variables for year, month, and day. Ensure observations for temperature, precipitation, and snowfall are given in reasonable units. For snowfall, what are the most commonly observed values? Why?
-Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
-Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and (ii) make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year.
 
 The data comes from the `ny_noaa` dataset
+
 ```{r}
 data("ny_noaa")
+
+ny_noaa <- ny_noaa |>
+  mutate(tmax = as.numeric(tmax),
+         tmin = as.numeric(tmin))
 ```
 
-This dataset shows daily weather data from `r ny_noaa |> pull(id) |> n_distinct()` sites in New York State, from `r ny_noaa |> pull(date) |> min()` to `r ny_noaa |> pull(date) |> max()`
+```{r, include=FALSE,echo=FALSE}
+skimr::skim(ny_noaa)
+```
 
-First, data cleaning. I will create separate variables for year, month, and day. I also want to standardize the units of the precipitation and snowfall variables. Per the course website, precipitation is given in tenths of a mm, and snowfall and snow depth in mm. I will standardize them all to cm, which is a more human-familiar measurement (even though we live in the US!).
+This dataset shows daily weather data from `r ny_noaa |> pull(id) |> n_distinct()` sites in New York State, from `r ny_noaa |> pull(date) |> min()` to `r ny_noaa |> pull(date) |> max()`. It has `r nrow(ny_noaa)` and `r ncol(ny_noaa)`. Besides the location id and date, it gives the amount of precipitation, snowfall, snow depth, and the minimum and maximum temperature on each day. Even though the dataset is quite large, there are many rows with missing data: `r round(100 * (ny_noaa |> filter(is.na(tmax)) |> nrow()) / (ny_noaa |> nrow()),1)` percent of rows are missing temperature data, and there are many rows missing precipitation and snowfall data as well. Additionally, in the numeric columns, there are some extreme values. For example there is at least one day with `r ny_noaa |> pull(snow) |> min(na.rm = TRUE)` mm of snowfall.
+
+First, data cleaning. I will create separate variables for year, month, and day. I also want to standardize the units of the precipitation and snowfall variables. Per the course website, precipitation is given in tenths of a mm, and snowfall and snow depth in mm. I will standardize them all to cm, which is a more human-familiar measurement (even though we live in the US!). Similarly for the temperatures, they are currently in tenths of a degree celcius; I would rather they be degrees celcius.
+
 ```{r}
 ny_noaa <- ny_noaa |>
   mutate(year = year(date),
@@ -55,27 +68,113 @@ ny_noaa <- ny_noaa |>
          day = day(date),
          prcp = prcp / 100,
          snow = snow / 10,
-         snwd = snwd / 10)
+         snwd = snwd / 10,
+         tmin = tmin / 10,
+         tmax = tmax / 10)
 ```
 
 Taking a quick look at these values visually:
+
 ```{r}
 ny_noaa |>
   ggplot(aes(x = prcp)) + 
-  geom_histogram()
+  geom_histogram() + 
+  labs(x = "Precipitation (cm)", y = "Count", title = "Histogram of precipitation")
 
 ny_noaa |>
   ggplot(aes(x = snow)) + 
-  geom_histogram()
+  geom_histogram() +
+  labs(x = "Snowfall (cm)", y = "Count", title = "Histogram of snowfall")
+
 
 ny_noaa |>
   ggplot(aes(x = snwd)) + 
-  geom_histogram()
+  geom_histogram() +
+  labs(x = "Snow depth (cm)", y = "Count", title = "Histogram of snow depth")
+
 ```
 
-These distributions are all extremely skewed, with 0cm of precipitation/snowfall/snowdepth being by far the most
+These distributions are all extremely skewed, with 0cm of precipitation/snowfall/snowdepth being by far the most common amount. This makes sense, since it (mostly) only snows in the winter, and rains on a minority of days. We can see this more explicitly by constructing a binary variable for "rain/no rain"
+
+```{r}
+ny_noaa |> 
+  mutate(rain_yn = case_when(prcp == 0 ~ 0,
+                             prcp > 0 ~ 1,
+                             .default = NA)) |>
+  janitor::tabyl(rain_yn) |> 
+  knitr::kable()
+```
+
+Here we can see that it rains on about 40% of days with recorded data.
+
+Likewise with snowfall, it intuitively makes sense that smaller values are going to be more common, since even when it snows, it is more likely to be a light dusting than a multi-foot megastorm. We can see this by filtering for snowfall \>0cm and looking at the plot again:
+
+```{r}
+ny_noaa |>
+  filter(snow > 0) |>
+  ggplot(aes(x = snow)) + 
+  geom_histogram() +
+  labs(x = "Snowfall (cm)", y = "Count", title = "Histogram of snowfall > 0")
+```
+
+Very small values of snowfall remain the most common.
+
+In terms of temperature, we can plot the average max temperature by month at each station over the years. For ease of visualization, we'll consider just January and July, when it is coldest and hottest (respectively) in NY:
+
+```{r}
+ny_noaa |>
+  group_by(id, year, month) |>
+  summarize(avg_tmax = mean(tmax, na.rm = TRUE)) |>
+  filter(month == 1 | month == 7) |>
+  mutate(month = case_match(month, 
+                            7 ~ "July",
+                            1 ~ "January")) |>
+  ggplot(aes(x = year, y = avg_tmax, group = year)) + 
+  geom_point(color = "blue",alpha = 0.2) + 
+  #geom_violin(alpha = 0.2) + 
+  labs(x = "Year",
+       y = "Average max temperature (C)",
+       Title = "Average max temperature at each station in NY") +
+  facet_wrap(. ~ month)
+```
+
+Because there are so many stations, its hard to detect a trend within stations. However a few things are immediately clear:
+
+-   Average max temperatures in July are much higher than average max temperatures in January.
+
+-   Within each month, certain years stick out as warmer or colder across the sites. For example, January 1990 was quite warm, while July 2000 was relatively cool.
+
+-   There are some extreme outliers, like on extra cold station in January 1982, or in July 1988.
+
+-   The highest average max temperature recorded over July was in 2010.
+
+We can also plot temperature and snowfall:
+
+```{r}
+temp_hex_plot <- ny_noaa |>
+  ggplot(aes(x = tmin, y = tmax)) + 
+  geom_hex() +
+  labs(x = "Minimum temperature (C)",
+       y = "Maximum temperature (C)",
+       fill = "Frequency",
+       title = "Minimum vs. Maximum temperature (C)") + 
+  theme(legend.position = "right")
+
+snow_ridge_plot <- ny_noaa |>
+  filter(snow > 0, 
+         snow < 10) |>
+  ggplot(aes(x = snow, y = year, group = year)) + 
+  ggridges::geom_density_ridges() + 
+  labs(y = "Year",
+       x = "Snowfall (cm)",
+       title = "Snowfall between 0 and 100cm by year")
+
+
+temp_hex_plot + snow_ridge_plot
+```
 
 ## Problem 2
 
 ## Problem 3
+
 # Conclusion
