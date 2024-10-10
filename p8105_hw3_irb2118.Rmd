@@ -5,7 +5,11 @@ output: github_document
 ---
 
 Author: Ravi Brenner (irb2118)
+# Introduction
+This Rmarkdown document is for P8105 - Data Science 1, homework 3, covering topics related to visualization and exploratory data analysis.
 
+# Methods
+The NY NOAA data for this assignment comes from the `p8105.datasets` package, which will be imported here along with the `tidyverse` package. Additionally, some custom setup options are included here, based on Dr. Goldsmith's examples in class. Further datasets are available from the course website covering NHANES accelerometers and Citi Bike
 ```{r setup}
 library(tidyverse)
 library(p8105.datasets)
@@ -27,3 +31,11 @@ scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
 
+# Problems
+
+## Problem 1
+
+## Problem 2
+
+## Problem 3
+# Conclusion
