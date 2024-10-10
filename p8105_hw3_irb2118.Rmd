@@ -9,8 +9,8 @@ Author: Ravi Brenner (irb2118)
 This Rmarkdown document is for P8105 - Data Science 1, homework 3, covering topics related to visualization and exploratory data analysis.
 
 # Methods
-The NY NOAA data for this assignment comes from the `p8105.datasets` package, which will be imported here along with the `tidyverse` package. Additionally, some custom setup options are included here, based on Dr. Goldsmith's examples in class. Further datasets are available from the course website covering NHANES accelerometers and Citi Bike
-```{r setup}
+The NY NOAA data for this assignment comes from the `p8105.datasets` package, which will be imported here along with the `tidyverse` package. Additionally, some custom setup options are included here, based on Dr. Goldsmith's examples in class. Further datasets were downloaded from the course website covering NHANES accelerometers and Citi Bike.
+```{r setup, message=FALSE}
 library(tidyverse)
 library(p8105.datasets)
 
@@ -34,6 +34,46 @@ scale_fill_discrete = scale_fill_viridis_d
 # Problems
 
 ## Problem 1
+The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and indicating the extent to which missing data is an issue. Then, do or answer the following (commenting on the results of each):
+
+Do some data cleaning. Create separate variables for year, month, and day. Ensure observations for temperature, precipitation, and snowfall are given in reasonable units. For snowfall, what are the most commonly observed values? Why?
+Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
+Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and (ii) make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year.
+
+The data comes from the `ny_noaa` dataset
+```{r}
+data("ny_noaa")
+```
+
+This dataset shows daily weather data from `r ny_noaa |> pull(id) |> n_distinct()` sites in New York State, from `r ny_noaa |> pull(date) |> min()` to `r ny_noaa |> pull(date) |> max()`
+
+First, data cleaning. I will create separate variables for year, month, and day. I also want to standardize the units of the precipitation and snowfall variables. Per the course website, precipitation is given in tenths of a mm, and snowfall and snow depth in mm. I will standardize them all to cm, which is a more human-familiar measurement (even though we live in the US!).
+```{r}
+ny_noaa <- ny_noaa |>
+  mutate(year = year(date),
+         month = month(date),
+         day = day(date),
+         prcp = prcp / 100,
+         snow = snow / 10,
+         snwd = snwd / 10)
+```
+
+Taking a quick look at these values visually:
+```{r}
+ny_noaa |>
+  ggplot(aes(x = prcp)) + 
+  geom_histogram()
+
+ny_noaa |>
+  ggplot(aes(x = snow)) + 
+  geom_histogram()
+
+ny_noaa |>
+  ggplot(aes(x = snwd)) + 
+  geom_histogram()
+```
+
+These distributions are all extremely skewed, with 0cm of precipitation/snowfall/snowdepth being by far the most
 
 ## Problem 2
 
