@@ -8,7 +8,9 @@ editor_options:
 ---
 
 Author: Ravi Brenner (irb2118) 
+
 # Introduction 
+
 This Rmarkdown document is for P8105 - Data Science 1, homework 3, covering topics related to visualization and exploratory data analysis.
 
 # Methods
@@ -174,6 +176,117 @@ temp_hex_plot + snow_ridge_plot
 ```
 
 ## Problem 2
+
+This problem will use movement data from the NHANES study.
+
+First, we will load, tidy, and merge the datasets. One dataset has participant demographics, and the other has the accelerometer data. In this process, I'll also order any factor variables (like education) and ensure that only participants >=21 with complete demographic data are included. The final dataframe is called `move_df`, since it is about movement data.
+
+```{r}
+demo_df <- read_csv("data/nhanes_covar.csv",
+                    skip = 4,
+                    show_col_types = FALSE) |>
+  janitor::clean_names() |>
+  mutate(sex = case_match(sex, 
+                          1 ~ "Male",
+                          2 ~ "Female",
+                          .default = NA),
+         education = case_match(education,
+                                1 ~ "Less than high school",
+                                2 ~ "High school equivalent",
+                                3 ~ "More than high school",
+                                .default = NA),
+         education = factor(education, 
+                            levels = c("Less than high school",
+                                       "High school equivalent",
+                                       "More than high school"))) |>
+  filter(age >= 21) |>
+  drop_na()
+
+accel_df <- read_csv("data/nhanes_accel.csv",
+                    show_col_types = FALSE) |>
+  janitor::clean_names() |>
+  pivot_longer(cols = min1:min1440,
+               names_to = "minute",
+               values_to = "mims",
+               names_prefix = "min") |>
+  mutate(minute = as.numeric(minute))
+
+move_df <- demo_df |>
+  left_join(accel_df, by = "seqn")
+```
+
+This final dataset has `r nrow(move_df)` rows and `r ncol(move_df)` columns, with `r move_df |> pull(seqn) |> n_distinct()` participants having full demographic data, and `r move_df |> pull(minute) |> n_distinct()` minutes recorded for each participant. (`r move_df |> pull(seqn) |> n_distinct()` * `r move_df |> pull(minute) |> n_distinct()` = `r (move_df |> pull(seqn) |> n_distinct()) * (move_df |> pull(minute) |> n_distinct())`).
+
+We can evaluate the distribution of education among men and women. Here are the counts:
+```{r}
+move_df |>
+  filter(minute == 1) |>
+  group_by(sex,education) |>
+  count() |>
+  pivot_wider(names_from = sex,
+              values_from = n) |>
+  knitr::kable()
+```
+
+And here is a visualization of the age distributions for men and women in each education category:
+```{r}
+move_df |>
+  filter(minute == 1) |>
+  ggplot(aes(x = age, y = sex, fill = sex)) + 
+  ggridges::geom_density_ridges() +
+  facet_grid(education ~ .) +
+  labs(y = "Sex",
+       x = "Age in years",
+       fill = "Sex",
+       title = "Distribution of age for males and females by education category")
+```
+
+Overall, the number of males and females appears to be fairly balanced, although there are more mails with high school equivalents than females. Looking at the age distribution, it appears that, among those with high school equivalents, there are relatively more younger males than females.
+
+Using the full dataset, we can sum across each participants total activity in a day, to create a total activity indicator Then, we can analyze how this total activity varies across age, sex, and education level:
+```{r}
+move_df |> 
+  group_by(seqn, sex, age, bmi, education) |>
+  summarize(total_activity = sum(mims)) |>
+  ggplot(aes(x = age, y = total_activity)) + 
+  geom_point(aes(color = sex)) +
+  geom_smooth(color = "gray", 
+              se = FALSE) + 
+  labs(x = "Age",
+       y = "Total activity indicator",
+       title = "Total activity vs. age, stratified by age and education level") + 
+  facet_grid(sex ~ education) 
+```
+
+From this plot, it's clear that total activity tends to decline with age, although the rate and degree of this decline can vary with sex and education level. The rate of decline appears to be lower among those with more education compared to those with less education. The differences between men and women are more subtle and harder to discern from a single plot, however it appears that females generally have higher total activity levels than men.
+
+Next we can look at how activity levels vary over the course of the day:
+```{r}
+move_df |>
+  group_by(education, sex, minute) |>
+  summarize(avg_mims = mean(mims)) |>
+  ggplot(aes(x = minute, y = avg_mims, color = sex)) + 
+  geom_point(alpha = 0.2) + 
+  geom_smooth(se = FALSE) +
+  scale_fill_manual(values = c("red","black")) +
+  facet_grid(. ~ education) + 
+  labs(x = "Minute of day",
+       y = "Average activity score",
+       color = "Sex",
+       title = "Average activity score during the day by education level and sex")
+```
+
+Based on these graphs, we can make a few observations
+
+-   Differences in activity across education levels appear mostly during the daytime. Everyone's activity dips to a similar low level during the night.
+
+-   Similarly, differences in activity levels among males and females are most pronounced during the daytime, when females tend to be more active than males. At nighttime though, it appears that males are slightly more active, particularly those with less than high school education.
+
+-   Activity levels for those with less than high school education reach a peak and then decline, whereas those with more education reach a plateau during the day before declining at night.
+
+
+
+
 
 ## Problem 3
 
