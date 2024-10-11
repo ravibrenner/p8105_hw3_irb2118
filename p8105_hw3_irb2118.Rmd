@@ -26,6 +26,7 @@ knitr::opts_chunk$set(
   fig.width = 6,
   fig.asp = .6,
   out.width = "90%",
+  dpi=300,
   message = FALSE,
   warning = FALSE
 )
@@ -238,7 +239,8 @@ move_df |>
   labs(y = "Sex",
        x = "Age in years",
        fill = "Sex",
-       title = "Distribution of age for males and females by education category")
+       title = "Distribution of age for males and females by education category") +
+  theme(strip.text.y.right = element_text(angle = 0))
 ```
 
 Overall, the number of males and females appears to be fairly balanced, although there are more mails with high school equivalents than females. Looking at the age distribution, it appears that, among those with high school equivalents, there are relatively more younger males than females.
@@ -268,7 +270,6 @@ move_df |>
   ggplot(aes(x = minute, y = avg_mims, color = sex)) + 
   geom_point(alpha = 0.2) + 
   geom_smooth(se = FALSE) +
-  scale_fill_manual(values = c("red","black")) +
   facet_grid(. ~ education) + 
   labs(x = "Minute of day",
        y = "Average activity score",
