@@ -170,7 +170,7 @@ snow_ridge_plot <- ny_noaa |>
   ggridges::geom_density_ridges() + 
   labs(y = "Year",
        x = "Snowfall (cm)",
-       title = "Snowfall between 0 and 100cm by year")
+       title = "Snowfall between 0 \nand 10cm by year")
 
 
 temp_hex_plot + snow_ridge_plot
@@ -243,24 +243,23 @@ move_df |>
   theme(strip.text.y.right = element_text(angle = 0))
 ```
 
-Overall, the number of males and females appears to be fairly balanced, although there are more mails with high school equivalents than females. Looking at the age distribution, it appears that, among those with high school equivalents, there are relatively more younger males than females.
+Overall, the number of males and females appears to be fairly balanced, although there are more males with high school equivalents than females. Looking at the age distribution, it appears that, among those with high school equivalents, there are relatively more younger males than females.
 
 Using the full dataset, we can sum across each participants total activity in a day, to create a total activity indicator Then, we can analyze how this total activity varies across age, sex, and education level:
 ```{r}
 move_df |> 
   group_by(seqn, sex, age, bmi, education) |>
   summarize(total_activity = sum(mims)) |>
-  ggplot(aes(x = age, y = total_activity)) + 
-  geom_point(aes(color = sex)) +
-  geom_smooth(color = "gray", 
-              se = FALSE) + 
+  ggplot(aes(x = age, y = total_activity, color = sex)) + 
+  geom_point() +
+  geom_smooth(se = FALSE) + 
   labs(x = "Age",
        y = "Total activity indicator",
        title = "Total activity vs. age, stratified by age and education level") + 
-  facet_grid(sex ~ education) 
+  facet_grid(. ~ education) 
 ```
 
-From this plot, it's clear that total activity tends to decline with age, although the rate and degree of this decline can vary with sex and education level. The rate of decline appears to be lower among those with more education compared to those with less education. The differences between men and women are more subtle and harder to discern from a single plot, however it appears that females generally have higher total activity levels than men.
+From this plot, it's clear that total activity tends to decline with age, although the rate and degree of this decline can vary with sex and education level. The rate of decline appears to be lower among those with more education compared to those with less education. The differences between men and women are more subtle, however it appears that females generally have higher total activity levels than men.
 
 Next we can look at how activity levels vary over the course of the day:
 ```{r}
@@ -288,9 +287,7 @@ Based on these graphs, we can make a few observations
 
 ## Problem 3
 
-This zip file contains data on rides taken on the NYC Citi Bike system. Files contain 1% of all rides with a total duration less than 4 hours in each of four months. Import, clean, and tidy these data, and describe the resulting dataset.
-
-This problem involves analyzing Citi Bike data, a popular bike rental option in New york City.
+This problem involves analyzing Citi Bike data, a popular bike rental option in New York City.
 
 First, I will import, clean, and tidy these data, and merge them into a single dataset.
 
@@ -314,7 +311,7 @@ citi_df <- bind_rows(jan20,jul20,jan24,jul24) |>
                                             "July 2024")))
 ```
 
-This dataframe, `citi_df`, has `nrow(citi_df)` and `r ncol(citi_df)`. It shows rides taken in January and July, in 2020 and 2024. It shows the start and endpoint, the day of the week, the duration of the ride, whether the rider was a member or not, and what type of bike they rode (regular vs. ebike).
+This dataframe, `citi_df`, has `r `nrow(citi_df)` rows and `r ncol(citi_df)` columns. It shows rides taken in January and July, in 2020 and 2024. It shows the start and endpoint, the day of the week, the duration of the ride, whether the rider was a member or not, and what type of bike they rode (regular vs. ebike).
 
 We can look at total rides by year and month among casual riders and members:
 ```{r}
@@ -363,7 +360,7 @@ citi_df |>
 
 This plot shows a few interesting things:
 
--   The peak ridership day of the week has varied by month and year, but is always a weekday. Weekends tend to be somewhat less popular times to ride, and were especially so in July 2020 (possibly impacted by COVID-19 restrictions). 
+-   The peak ridership day of the week has varied by month and year, but is always a weekday. Weekends tend to be somewhat less popular times to ride, except for in July 2020 (possibly impacted by COVID-19 restrictions). 
 
 -   As noted earlier, the summertime is a much more popular time to ride than the winter, and ridership has clearly increased from 2020 to 2024 across months and days of the week.
 
@@ -386,7 +383,7 @@ citi_df |>
        y = "Density",
        fill = "Bike type",
        color = "Bike type",
-       title = "Distribution of ride duration by  bike type, member status, and month, 2024") +
+       title = "Distribution of ride duration by  bike type, \n member status, and month, 2024") +
   facet_grid(month ~ member_casual)
 ```
 
@@ -409,7 +406,7 @@ citi_df |>
        y = "Density",
        fill = "Bike type",
        color = "Bike type",
-       title = "Distribution of ride duration by  bike type, member status, and month, 2024") +
+       title = "Distribution of ride duration by  bike type, \n member status, and month, 2024") +
   facet_grid(month ~ member_casual)
 ```
 
